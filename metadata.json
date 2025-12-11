@@ -1,0 +1,8 @@
+{
+  "name": "The Fresher's Survival Station",
+  "description": "A Cyberpunk-themed survival dashboard for first-year engineering students featuring AI guidance, attendance tracking, and club exploration.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
