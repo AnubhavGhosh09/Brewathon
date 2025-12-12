@@ -14,32 +14,39 @@ import { auth } from './services/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { dbInstance } from './services/firebaseConfig';
-import { Loader } from 'lucide-react';
+import { Loader, WifiOff } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [isPanicMode, setIsPanicMode] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch additional user data from Firestore
+        let userData: any = {};
         try {
+            // Attempt to fetch additional user data from Firestore
             const userDoc = await getDoc(doc(dbInstance, "users", firebaseUser.uid));
-            const userData = userDoc.exists() ? userDoc.data() : {};
-            
-            setUser({
-                uid: firebaseUser.uid,
-                email: firebaseUser.email!,
-                username: firebaseUser.displayName || userData.username || 'Student',
-                department: userData.department,
-                isLoggedIn: true
-            });
+            if (userDoc.exists()) {
+                userData = userDoc.data();
+            }
+            setIsOffline(false);
         } catch (e) {
-            console.error("Error fetching user profile:", e);
+            console.warn("Firestore unreachable, falling back to basic auth:", e);
+            setIsOffline(true);
+            // Fallback: Use what we have from the Auth object
         }
+        
+        setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email!,
+            username: firebaseUser.displayName || userData.username || 'Student',
+            department: userData.department || 'General',
+            isLoggedIn: true
+        });
       } else {
         setUser(null);
       }
@@ -91,6 +98,15 @@ const App: React.FC = () => {
             setView={setCurrentView} 
             onLogout={handleLogout}
         />
+
+        {isOffline && (
+            <div className="max-w-7xl mx-auto px-4 mb-4">
+                <div className="bg-yellow-900/20 border border-yellow-500/50 text-yellow-500 p-2 text-xs font-mono flex items-center justify-center gap-2">
+                    <WifiOff size={14} />
+                    OFFLINE MODE ENGAGED :: DATABASE UNREACHABLE :: USING CACHED/DEFAULT PROTOCOLS
+                </div>
+            </div>
+        )}
 
         <main className="max-w-7xl mx-auto px-4 pb-20">
             {currentView === AppView.DASHBOARD && (
