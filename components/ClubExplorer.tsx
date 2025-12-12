@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { INITIAL_CLUBS } from '../constants';
-import { Search, Users, Network, Filter, CheckCircle2, Sparkles, X, Loader } from 'lucide-react';
+import { Search, Users, Network, Filter, CheckCircle2, Sparkles, X, Loader, AlertTriangle } from 'lucide-react';
 import { matchClubs } from '../services/geminiService';
 
 const ClubExplorer: React.FC = () => {
@@ -13,6 +13,7 @@ const ClubExplorer: React.FC = () => {
   const [userInterests, setUserInterests] = useState('');
   const [isMatching, setIsMatching] = useState(false);
   const [matchResults, setMatchResults] = useState<Array<{id: string, reason: string}>>([]);
+  const [matchError, setMatchError] = useState<string | null>(null);
 
   const categories = ['All', 'Theatre', 'Dance', 'Photography', 'Technical', 'Robotics', 'Management'];
 
@@ -27,11 +28,12 @@ const ClubExplorer: React.FC = () => {
     if (!userInterests.trim()) return;
     setIsMatching(true);
     setMatchResults([]);
+    setMatchError(null);
     try {
         const matches = await matchClubs(userInterests);
         setMatchResults(matches);
-    } catch (e) {
-        alert("AI Matchmaker Malfunction. Please try again.");
+    } catch (e: any) {
+        setMatchError(e.message || "AI Matchmaker Malfunction. Please try again.");
     } finally {
         setIsMatching(false);
     }
@@ -59,179 +61,144 @@ const ClubExplorer: React.FC = () => {
       <div className="bg-black/40 border border-slate-800 p-4 space-y-4">
         {/* Search & Main Controls */}
         <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-600" size={18} />
-                <input 
-                type="text" 
-                placeholder="QUERY_DATABASE..." 
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-none py-3 pl-12 pr-4 text-purple-100 focus:outline-none focus:border-purple-500 font-mono transition-all uppercase placeholder:text-slate-600"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-            
-            <button 
-                onClick={() => setShowRecruitingOnly(!showRecruitingOnly)}
-                className={`flex items-center gap-2 px-4 py-3 font-mono text-xs uppercase tracking-wider border transition-all ${
-                    showRecruitingOnly
-                    ? 'bg-green-900/20 border-green-500 text-green-400'
-                    : 'bg-transparent border-slate-700 text-slate-500 hover:border-slate-500'
-                }`}
-            >
-                {showRecruitingOnly ? <CheckCircle2 size={16} /> : <Filter size={16} />}
-                STATUS: {showRecruitingOnly ? 'RECRUITING' : 'ALL'}
-            </button>
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search factions..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg py-3 pl-12 pr-4 text-purple-100 focus:outline-none focus:border-purple-500 font-mono transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-2 bg-slate-900/50 border border-slate-700 rounded-lg px-4">
+            <input 
+              type="checkbox"
+              id="recruiting"
+              checked={showRecruitingOnly}
+              onChange={(e) => setShowRecruitingOnly(e.target.checked)}
+              className="accent-purple-500 w-4 h-4"
+            />
+            <label htmlFor="recruiting" className="text-xs font-mono text-slate-400 cursor-pointer select-none">RECRUITING_ONLY</label>
+          </div>
         </div>
 
-        {/* Categories Type Selector */}
-        <div className="border-t border-slate-800 pt-4">
-             <div className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-2">FILTER_BY_TYPE ::</div>
-             <div className="flex flex-wrap gap-2">
-                {categories.map(cat => (
+        {/* Category Chips */}
+        <div className="flex flex-wrap gap-2">
+            <Filter size={14} className="text-slate-500 mt-2 mr-2" />
+            {categories.map(cat => (
                 <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
-                    className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wider border transition-all ${
-                    activeCategory === cat
-                        ? 'bg-purple-900/30 border-purple-500 text-purple-400'
-                        : 'bg-transparent border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
+                    className={`px-3 py-1 text-[10px] uppercase font-mono border rounded-full transition-all ${
+                        activeCategory === cat
+                        ? 'bg-purple-900/40 border-purple-500 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                        : 'bg-transparent border-slate-800 text-slate-500 hover:border-slate-600'
                     }`}
                 >
                     {cat}
                 </button>
-                ))}
-            </div>
+            ))}
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Clubs Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredClubs.map(club => (
-          <div key={club.id} className="bg-black/40 p-5 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-900/40 transition-all group relative overflow-hidden flex flex-col h-full">
-            {/* Corner Accent */}
-            <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-slate-700 group-hover:border-purple-500 transition-colors"></div>
-            
-            <div className="flex justify-between items-start mb-3">
-              <span className="text-3xl filter grayscale group-hover:grayscale-0 transition-all">{club.icon}</span>
-              <span className={`text-[9px] px-2 py-1 font-mono uppercase border ${
-                  club.status === 'RECRUITING' 
-                  ? 'border-green-500/50 text-green-400 bg-green-900/10' 
-                  : 'border-red-500/50 text-red-400 bg-red-900/10'
-              }`}>
-                {club.status}
-              </span>
-            </div>
-            
-            <div className="flex-1">
-                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-purple-400 transition-colors font-mono tracking-wide">{club.name}</h3>
-                <div className="mb-2">
-                     <span className="text-[10px] px-1.5 py-0.5 bg-slate-900 text-slate-400 border border-slate-700 font-mono uppercase">
-                        TYPE: {club.category}
-                    </span>
-                </div>
-                <p className="text-xs text-slate-500 mb-4 font-mono leading-relaxed">{club.description}</p>
-            </div>
-
-            <div className="flex justify-between items-center text-[10px] text-slate-600 font-mono border-t border-slate-800 pt-3 mt-auto">
-                <div className="flex items-center gap-1">
-                    <Users size={12} />
-                    {club.members} OPERATIVES
-                </div>
-                <button className="text-purple-400 hover:text-purple-300 transition-colors uppercase">
-                    [ ACCESS_DATA ]
-                </button>
-            </div>
-          </div>
-        ))}
-        
-        {filteredClubs.length === 0 && (
-            <div className="col-span-full py-12 text-center border border-dashed border-slate-800 rounded-lg">
-                <p className="text-slate-500 font-mono">NO_FACTIONS_FOUND_MATCHING_CRITERIA</p>
-                <button 
-                    onClick={() => {setSearchTerm(''); setActiveCategory('All'); setShowRecruitingOnly(false);}}
-                    className="mt-2 text-purple-400 hover:text-purple-300 text-xs font-mono uppercase underline"
-                >
-                    RESET_FILTERS
-                </button>
-            </div>
-        )}
-      </div>
-
-      {/* AI Matchmaker Modal */}
-      {showMatchmaker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl bg-[#0a0a0a] border border-purple-500/50 rounded-lg shadow-[0_0_50px_rgba(168,85,247,0.2)] overflow-hidden flex flex-col max-h-[80vh]">
-                
-                {/* Header */}
-                <div className="p-4 bg-purple-950/20 border-b border-purple-500/30 flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-white font-mono flex items-center gap-2">
-                        <Sparkles className="text-purple-400" /> 
-                        NEURAL_MATCHMAKER v1.0
-                    </h3>
-                    <button onClick={() => setShowMatchmaker(false)} className="text-slate-500 hover:text-white">
-                        <X size={24} />
-                    </button>
-                </div>
-
-                <div className="p-6 overflow-y-auto">
-                    {!matchResults.length ? (
-                        <div className="space-y-4">
-                            <p className="text-slate-400 font-mono text-sm">
-                                Enter your hobbies, skills, or what you want to learn. The system will analyze your profile against faction databases.
-                            </p>
-                            <textarea 
-                                value={userInterests}
-                                onChange={(e) => setUserInterests(e.target.value)}
-                                placeholder="e.g. I love coding, but I also want to learn photography. I enjoy organizing events..."
-                                className="w-full h-32 bg-slate-900/50 border border-slate-700 p-4 text-purple-100 font-mono focus:border-purple-500 outline-none rounded-none"
-                            />
-                            <button 
-                                onClick={handleMatchmaking}
-                                disabled={isMatching || !userInterests}
-                                className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold font-mono tracking-widest uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {isMatching ? <Loader className="animate-spin" /> : <Network />} 
-                                {isMatching ? 'ANALYZING_COMPATIBILITY...' : 'INITIATE_SCAN'}
-                            </button>
-                        </div>
+            <div key={club.id} className="group relative bg-black/40 border border-slate-800 p-6 hover:border-purple-500/50 transition-all duration-300">
+                <div className="absolute top-0 right-0 p-2">
+                    {club.status === 'RECRUITING' ? (
+                        <span className="flex items-center gap-1 text-[9px] font-bold bg-green-900/20 text-green-500 px-2 py-1 border border-green-500/20 font-mono uppercase">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Open
+                        </span>
                     ) : (
-                        <div className="space-y-4 animate-[fadeIn_0.5s_ease-out]">
-                            <div className="text-center mb-6">
-                                <div className="inline-block px-4 py-1 bg-green-900/20 text-green-400 border border-green-500/30 rounded-full text-xs font-mono mb-2">
-                                    ANALYSIS_COMPLETE
-                                </div>
-                                <h4 className="text-white font-bold text-lg font-mono">TOP MATCHES FOUND</h4>
-                            </div>
-
-                            <div className="grid gap-4">
-                                {matchResults.map((result, idx) => {
-                                    const club = INITIAL_CLUBS.find(c => c.id === result.id);
-                                    if (!club) return null;
-                                    return (
-                                        <div key={idx} className="bg-slate-900/40 border border-purple-500/30 p-4 flex gap-4 items-start hover:bg-purple-900/10 transition-colors">
-                                            <div className="text-3xl pt-1">{club.icon}</div>
-                                            <div>
-                                                <h5 className="text-purple-300 font-bold font-mono text-lg">{club.name}</h5>
-                                                <p className="text-slate-400 text-xs uppercase font-mono mb-2">{club.category}</p>
-                                                <div className="text-sm text-slate-300 border-l-2 border-purple-500 pl-3 italic">
-                                                    "{result.reason}"
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            <button 
-                                onClick={() => setMatchResults([])}
-                                className="w-full mt-4 py-2 border border-slate-700 text-slate-400 hover:text-white font-mono text-xs uppercase"
-                            >
-                                RESET_QUERY
-                            </button>
-                        </div>
+                        <span className="text-[9px] font-bold bg-slate-900 text-slate-500 px-2 py-1 border border-slate-800 font-mono uppercase">Full</span>
                     )}
                 </div>
+
+                <div className="mb-4 text-4xl group-hover:scale-110 transition-transform duration-300">{club.icon}</div>
+                
+                <h3 className="text-xl font-bold text-white font-mono mb-1">{club.name}</h3>
+                <div className="text-xs text-purple-400 font-mono mb-3 uppercase tracking-wider">{club.category}</div>
+                
+                <p className="text-slate-400 text-sm mb-4 line-clamp-2">{club.description}</p>
+                
+                <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+                    <div className="flex items-center gap-2 text-slate-500 text-xs font-mono">
+                        <Users size={14} />
+                        {club.members} Members
+                    </div>
+                    <button className="text-xs font-bold text-white hover:text-purple-400 font-mono uppercase transition-colors">
+                        View_Intel &gt;
+                    </button>
+                </div>
             </div>
+        ))}
+      </div>
+
+      {/* Matchmaker Modal */}
+      {showMatchmaker && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+             <div className="w-full max-w-lg bg-black border border-purple-500/50 rounded-xl shadow-[0_0_50px_rgba(168,85,247,0.15)] overflow-hidden animate-[scaleIn_0.2s_ease-out]">
+                <div className="p-6 bg-gradient-to-br from-purple-900/20 to-black">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-bold text-white font-mono flex items-center gap-2">
+                            <Sparkles className="text-purple-500" /> AI_MATCHMAKER
+                        </h3>
+                        <button onClick={() => setShowMatchmaker(false)} className="text-slate-500 hover:text-white">
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <p className="text-slate-300 text-sm font-mono">Input your interests, skills, or hobbies. The system will calculate optimal faction alignment.</p>
+                        <textarea 
+                            value={userInterests}
+                            onChange={(e) => setUserInterests(e.target.value)}
+                            placeholder="e.g. I love coding, building robots, and acting in plays..."
+                            className="w-full h-32 bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none font-mono text-sm resize-none"
+                        />
+                        
+                        {matchError && (
+                            <div className="p-3 bg-red-900/20 border border-red-500/30 text-red-400 text-xs font-mono flex gap-2 items-start">
+                                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                                <span className="whitespace-pre-wrap">{matchError}</span>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={handleMatchmaking}
+                            disabled={isMatching || !userInterests}
+                            className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold font-mono uppercase rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isMatching ? <Loader className="animate-spin" /> : <Network />} 
+                            {isMatching ? 'CALCULATING_ALIGNMENT...' : 'RUN_ANALYSIS'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Results Area */}
+                {(matchResults.length > 0) && (
+                    <div className="p-6 border-t border-purple-500/20 bg-slate-900/50 max-h-64 overflow-y-auto">
+                        <h4 className="text-xs font-bold text-purple-400 font-mono uppercase mb-4 tracking-widest">OPTIMAL_MATCHES_FOUND:</h4>
+                        <div className="space-y-3">
+                            {matchResults.map((result, idx) => {
+                                const club = INITIAL_CLUBS.find(c => c.id === result.id);
+                                if (!club) return null;
+                                return (
+                                    <div key={idx} className="flex items-start gap-4 p-3 border border-slate-700 bg-black/40 rounded-lg animate-[slideUp_0.3s_ease-out]" style={{animationDelay: `${idx * 100}ms`}}>
+                                        <div className="text-2xl pt-1">{club.icon}</div>
+                                        <div>
+                                            <h5 className="font-bold text-white font-mono">{club.name}</h5>
+                                            <p className="text-xs text-purple-300 font-mono mt-1">&gt; {result.reason}</p>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
+             </div>
         </div>
       )}
     </div>

@@ -22,9 +22,12 @@ export const isSystemOnline = (): boolean => {
     return !!apiKey && apiKey.length > 0;
 };
 
+// Error Message Constant
+const API_KEY_ERROR_MSG = "⚠️ SYSTEM ERROR: API_KEY is missing.\n\nDEV FIX: Create a .env file with 'API_KEY=your_key_here' or add it to your deployment variables.";
+
 // Helper to check AI availability internally
 const checkAI = () => {
-    if (!ai) throw new Error("API_KEY_MISSING: API_KEY not set in environment variables.");
+    if (!ai) throw new Error("API_KEY_MISSING");
 };
 
 export const chatWithSenior = async (
@@ -74,9 +77,8 @@ export const chatWithSenior = async (
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    // User-friendly error message for Vercel deployments
     if (error.message?.includes("API_KEY")) {
-        return "⚠️ SYSTEM ERROR: The 'API_KEY' is missing from the environment variables.\n\nDEV FIX: Go to Vercel Settings > Environment Variables and add 'API_KEY'. Redeploy to fix.";
+        return API_KEY_ERROR_MSG;
     }
     return "Senior Bot is currently napping (Service Error). Try again later.";
   }
@@ -121,8 +123,11 @@ export const parseTimetableImage = async (base64Image: string): Promise<string> 
        jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
        return jsonStr;
 
-   } catch (error) {
+   } catch (error: any) {
        console.error("OCR Error:", error);
+       if (error.message === "API_KEY_MISSING") {
+           throw new Error(API_KEY_ERROR_MSG);
+       }
        throw new Error("Failed to decode visual data.");
    }
 };
@@ -147,8 +152,11 @@ export const generateExcuse = async (reason: string, intensity: number): Promise
         });
         
         return response.text || "Error generating excuse.";
-    } catch (e) {
-        return "Excuse Module Offline: Check API Key Configuration.";
+    } catch (e: any) {
+        if (e.message === "API_KEY_MISSING") {
+            return API_KEY_ERROR_MSG;
+        }
+        return "Excuse Module Offline: System Glitch.";
     }
 };
 
@@ -175,7 +183,10 @@ export const generateDraftEmail = async (recipient: string, topic: string, tone:
         });
 
         return response.text || "Error generating email.";
-    } catch (e) {
+    } catch (e: any) {
+        if (e.message === "API_KEY_MISSING") {
+            return API_KEY_ERROR_MSG;
+        }
         console.error("Email Gen Error:", e);
         return "Email Protocol Failed. Please manually draft.";
     }
@@ -219,8 +230,11 @@ export const matchClubs = async (userInterests: string): Promise<Array<{id: stri
         const jsonStr = response.text || "[]";
         return JSON.parse(jsonStr);
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("Matchmaker Error:", e);
+        if (e.message === "API_KEY_MISSING") {
+            throw new Error(API_KEY_ERROR_MSG);
+        }
         throw new Error("MATCHMAKING_ALGORITHM_FAILED");
     }
 };
