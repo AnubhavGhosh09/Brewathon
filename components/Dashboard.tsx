@@ -127,10 +127,10 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
                 <p className="text-slate-500 text-xs font-mono mb-4 uppercase">AI Schedule Parser Online.</p>
                 <div className="space-y-3 font-mono text-xs">
                     <div className="flex items-center gap-3 text-cyan-300/80 bg-cyan-900/10 p-2 border border-cyan-500/10">
-                        <span className="text-cyan-500">></span> NEXT_OP: {nextClass}
+                        <span className="text-cyan-500">&gt;</span> NEXT_OP: {nextClass}
                     </div>
                     <div className="flex items-center gap-3 text-emerald-300/80 bg-emerald-900/10 p-2 border border-emerald-500/10">
-                        <span className="text-emerald-500">></span> STEALTH_OPS: {stealthSlots} AVAILABLE
+                        <span className="text-emerald-500">&gt;</span> STEALTH_OPS: {stealthSlots} AVAILABLE
                     </div>
                 </div>
             </div>

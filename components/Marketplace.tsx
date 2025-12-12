@@ -75,7 +75,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white flex items-center gap-3 font-mono">
-            <span className="text-emerald-500">>></span> BLACK_MARKET <span className="text-xs px-2 py-1 rounded bg-red-900/30 text-red-500 border border-red-500/30">UNREGULATED</span>
+            <span className="text-emerald-500">&gt;&gt;</span> BLACK_MARKET <span className="text-xs px-2 py-1 rounded bg-red-900/30 text-red-500 border border-red-500/30">UNREGULATED</span>
           </h2>
           <p className="text-slate-400 font-mono text-sm mt-1">Buy, Sell, Exchange. No snitches allowed.</p>
         </div>

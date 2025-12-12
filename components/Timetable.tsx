@@ -56,7 +56,7 @@ const Timetable: React.FC = () => {
        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white flex items-center gap-2 font-mono">
-            <span className="text-cyan-500">></span> TEMPORAL_GRID
+            <span className="text-cyan-500">&gt;</span> TEMPORAL_GRID
           </h2>
           <p className="text-slate-500 font-mono text-sm uppercase">Synchronize your schedule to the College Mainframe.</p>
         </div>
