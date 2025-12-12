@@ -2,8 +2,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { COLLEGE_CONTEXT } from "../constants";
 
 // Initialize Gemini Client
-const apiKey = process.env.API_KEY || 'dummy-key'; 
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const chatWithSenior = async (
   message: string,
