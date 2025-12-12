@@ -1,8 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { COLLEGE_CONTEXT } from "../constants";
 
-// Declare process to satisfy TypeScript compiler (tsc) since @types/node is not installed.
-// Vite replaces process.env.API_KEY with the actual string at build time.
+// Declare process to satisfy TypeScript compiler (tsc).
+// Vite's define plugin replaces 'process.env.API_KEY' with the actual string literal at build time.
 declare const process: {
   env: {
     API_KEY: string;
@@ -10,8 +10,6 @@ declare const process: {
 };
 
 // Initialize Gemini Client
-// The API key is obtained exclusively from the environment variable process.env.API_KEY
-// which is injected by the build process (vite.config.ts).
 const apiKey = process.env.API_KEY;
 
 let ai: GoogleGenAI | null = null;
@@ -19,9 +17,14 @@ if (apiKey) {
     ai = new GoogleGenAI({ apiKey: apiKey });
 }
 
-// Helper to check AI availability
+// Helper to check if the system is properly configured
+export const isSystemOnline = (): boolean => {
+    return !!apiKey && apiKey.length > 0;
+};
+
+// Helper to check AI availability internally
 const checkAI = () => {
-    if (!ai) throw new Error("API_KEY_MISSING: Gemini Neural Link Offline.");
+    if (!ai) throw new Error("API_KEY_MISSING: API_KEY not set in environment variables.");
 };
 
 export const chatWithSenior = async (
@@ -71,7 +74,10 @@ export const chatWithSenior = async (
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    if (error.message?.includes("API_KEY")) return "SYSTEM ERROR: NEURAL LINK SEVERED (API KEY MISSING).";
+    // User-friendly error message for Vercel deployments
+    if (error.message?.includes("API_KEY")) {
+        return "⚠️ SYSTEM ERROR: The 'API_KEY' is missing from the environment variables.\n\nDEV FIX: Go to Vercel Settings > Environment Variables and add 'API_KEY'. Redeploy to fix.";
+    }
     return "Senior Bot is currently napping (Service Error). Try again later.";
   }
 };
@@ -142,7 +148,7 @@ export const generateExcuse = async (reason: string, intensity: number): Promise
         
         return response.text || "Error generating excuse.";
     } catch (e) {
-        return "Excuse Module Offline: Just say you had a flat tire.";
+        return "Excuse Module Offline: Check API Key Configuration.";
     }
 };
 
