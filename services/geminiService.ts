@@ -110,7 +110,7 @@ export const generateExcuse = async (reason: string, intensity: number): Promise
 
         const response = await ai!.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: prompt,
+            contents: { parts: [{ text: prompt }] },
             config: { temperature: 1.0 }
         });
         
@@ -123,25 +123,29 @@ export const generateExcuse = async (reason: string, intensity: number): Promise
 export const generateDraftEmail = async (recipient: string, topic: string, tone: string): Promise<string> => {
     try {
         checkAI();
+        const systemInstruction = "You are a helpful AI assistant for college students. Your goal is to draft professional, effective emails to professors or administration. Keep the tone appropriate to the user's request.";
+        
         const prompt = `Write a college email.
-        Recipient: ${recipient}
-        Topic: ${topic}
-        Tone: ${tone} (Professional/Apologetic/Desperate/Urgent)
+        Recipient Name/Title: ${recipient}
+        Context/Topic: ${topic}
+        Desired Tone: ${tone}
         
-        Output format:
-        Subject: ...
-        
-        Body text...
+        Generate a JSON-like structure or just the text with Subject and Body clearly separated.
         `;
 
         const response = await ai!.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: prompt,
+            contents: { parts: [{ text: prompt }] },
+            config: {
+                systemInstruction,
+                temperature: 0.7 
+            }
         });
 
         return response.text || "Error generating email.";
     } catch (e) {
-        return "Email Protocol Failed.";
+        console.error("Email Gen Error:", e);
+        return "Email Protocol Failed. Please manually draft.";
     }
 };
 
@@ -151,7 +155,7 @@ export const generateAIResponse = async (prompt: string, systemInstruction: stri
         checkAI();
         const response = await ai!.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: prompt,
+            contents: { parts: [{ text: prompt }] },
             config: { systemInstruction }
         });
         return response.text || "";

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { generateExcuse, generateDraftEmail } from '../services/geminiService';
-import { Sparkles, Mail, Ghost, Copy, RefreshCw } from 'lucide-react';
+import { Sparkles, Mail, Ghost, Copy, RefreshCw, CheckCheck } from 'lucide-react';
 
 const AITools: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'EXCUSE' | 'EMAIL'>('EXCUSE');
@@ -49,16 +49,24 @@ const ExcuseGenerator: React.FC = () => {
   const [intensity, setIntensity] = useState(50);
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleGenerate = async () => {
     if (!reason) return;
     setLoading(true);
+    setCopied(false);
     
     // Direct Call
     const text = await generateExcuse(reason, intensity);
     
     setResult(text);
     setLoading(false);
+  };
+
+  const handleCopy = () => {
+      navigator.clipboard.writeText(result);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -105,11 +113,11 @@ const ExcuseGenerator: React.FC = () => {
           <div className="mt-6 p-4 bg-slate-900 border border-purple-500/30 rounded relative group">
             <p className="text-purple-100 font-mono text-lg italic">"{result}"</p>
             <button 
-              onClick={() => navigator.clipboard.writeText(result)}
-              className="absolute top-2 right-2 text-slate-500 hover:text-white"
+              onClick={handleCopy}
+              className="absolute top-2 right-2 text-slate-500 hover:text-white transition-colors"
               title="Copy"
             >
-              <Copy size={16} />
+              {copied ? <CheckCheck size={16} className="text-green-500" /> : <Copy size={16} />}
             </button>
           </div>
         )}
@@ -126,16 +134,24 @@ const EmailDrafter: React.FC = () => {
     const [tone, setTone] = useState('Professional');
     const [result, setResult] = useState('');
     const [loading, setLoading] = useState(false);
+    const [copied, setCopied] = useState(false);
   
     const handleGenerate = async () => {
       if (!topic) return;
       setLoading(true);
+      setCopied(false);
       
       // Direct Call
       const text = await generateDraftEmail(recipient || 'Professor', topic, tone);
       
       setResult(text);
       setLoading(false);
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(result);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
   
     return (
@@ -185,14 +201,14 @@ const EmailDrafter: React.FC = () => {
           </button>
   
           {result && (
-            <div className="mt-6 p-4 bg-slate-900 border border-cyan-500/30 rounded relative">
-              <pre className="text-cyan-100 font-mono text-sm whitespace-pre-wrap">{result}</pre>
+            <div className="mt-6 p-4 bg-slate-900 border border-cyan-500/30 rounded relative group">
+              <pre className="text-cyan-100 font-mono text-sm whitespace-pre-wrap overflow-x-auto">{result}</pre>
               <button 
-                onClick={() => navigator.clipboard.writeText(result)}
-                className="absolute top-2 right-2 text-slate-500 hover:text-white"
+                onClick={handleCopy}
+                className="absolute top-2 right-2 text-slate-500 hover:text-white transition-colors"
                 title="Copy"
               >
-                <Copy size={16} />
+                {copied ? <CheckCheck size={16} className="text-green-500" /> : <Copy size={16} />}
               </button>
             </div>
           )}
