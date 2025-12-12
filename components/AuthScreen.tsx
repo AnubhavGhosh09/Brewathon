@@ -68,7 +68,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
              }}>
         </div>
 
-        <div className="z-10 w-full max-w-md p-8 glass-panel rounded-2xl border border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.15)] relative">
+        <div className="z-10 w-full max-w-md p-8 glass-panel rounded-2xl border border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.15)] relative bg-black/80">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
             
             <div className="text-center mb-8">
@@ -89,8 +89,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] outline-none transition-all font-mono"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] outline-none transition-all font-mono placeholder:text-slate-600"
                         placeholder="student@college.edu"
+                        autoComplete="email"
                     />
                 </div>
 
@@ -102,8 +103,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] outline-none transition-all font-mono"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] outline-none transition-all font-mono placeholder:text-slate-600"
                         placeholder="••••••••"
+                        autoComplete={isLogin ? "current-password" : "new-password"}
                     />
                 </div>
                 
@@ -116,7 +118,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                                 required
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-pink-500 focus:shadow-[0_0_15px_rgba(255,94,98,0.2)] outline-none transition-all font-mono"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-pink-500 focus:shadow-[0_0_15px_rgba(255,94,98,0.2)] outline-none transition-all font-mono placeholder:text-slate-600"
                                 placeholder="ENTER_ID"
                             />
                         </div>
@@ -127,7 +129,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                                 required
                                 value={department}
                                 onChange={(e) => setDepartment(e.target.value)}
-                                className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-pink-500 focus:shadow-[0_0_15px_rgba(255,94,98,0.2)] outline-none transition-all font-mono"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-pink-500 focus:shadow-[0_0_15px_rgba(255,94,98,0.2)] outline-none transition-all font-mono placeholder:text-slate-600"
                                 placeholder="CS / EC / ME"
                             />
                         </div>

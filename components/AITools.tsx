@@ -33,7 +33,7 @@ const AITools: React.FC = () => {
               : 'border-slate-800 text-slate-500 hover:border-slate-600'
           }`}
         >
-          <Mail size={18} /> Diplomacy Protocol
+          <Mail size={18} /> Email Drafter
         </button>
       </div>
 
