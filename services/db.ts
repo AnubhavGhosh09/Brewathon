@@ -1,5 +1,5 @@
 import { User, MarketItem, Subject, DaySchedule } from '../types';
-import { INITIAL_MARKET_ITEMS, INITIAL_SUBJECTS, DUMMY_TIMETABLE } from '../constants';
+import { INITIAL_SUBJECTS, DUMMY_TIMETABLE } from '../constants';
 import { auth, dbInstance } from './firebaseConfig';
 import { 
   createUserWithEmailAndPassword, 
@@ -16,8 +16,7 @@ import {
   getDocs, 
   addDoc, 
   deleteDoc,
-  query,
-  orderBy
+  query
 } from "firebase/firestore";
 
 export const db = {

@@ -42,9 +42,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             if (!department) throw new Error("DEPT_REQUIRED");
             userData = await db.register(email, password, username, department);
         }
-        // App.tsx auth listener will handle the state update, 
-        // but we can call onLogin here for immediate feedback if needed.
-        // For Firebase, relying on the auth listener is safer.
+        
+        // Explicitly call onLogin to satisfy the interface and provide immediate feedback,
+        // though App.tsx's auth listener is the primary source of truth.
+        if (userData) {
+            onLogin(userData);
+        }
     } catch (err: any) {
         let msg = err.message;
         if (msg.includes('auth/invalid-email')) msg = "INVALID_EMAIL_FORMAT";
