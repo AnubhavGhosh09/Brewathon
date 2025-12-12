@@ -1,5 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 
+// Declare process to satisfy TypeScript compiler (tsc) since @types/node is not installed.
+// Vite replaces process.env.API_KEY with the actual string at build time.
+declare const process: {
+  env: {
+    API_KEY: string;
+  }
+};
+
 // Initialize Gemini Client
 // The API key is obtained exclusively from the environment variable process.env.API_KEY
 // which is injected by the build process (vite.config.ts).
