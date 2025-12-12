@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { INITIAL_CLUBS } from '../constants';
-import { Search, Users, Network, Filter, CheckCircle2, Sparkles, X, Loader, AlertTriangle } from 'lucide-react';
+import { Search, Users, Network, Filter, Sparkles, X, Loader, AlertTriangle } from 'lucide-react';
 import { matchClubs } from '../services/geminiService';
 
 const ClubExplorer: React.FC = () => {
