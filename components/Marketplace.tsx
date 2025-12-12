@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, ShieldCheck, Tag, X, Trash2 } from 'lucide-react';
+import { Search, Plus, ShieldCheck, Tag, X, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import { MarketItem, User } from '../types';
 import { db } from '../services/db';
 
@@ -12,10 +12,17 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
   const [filter, setFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
-      // Load items from DB on mount
-      setItems(db.getMarketItems());
+      const loadItems = async () => {
+          setLoading(true);
+          const data = await db.getMarketItems();
+          setItems(data);
+          setLoading(false);
+      };
+      loadItems();
   }, []);
 
   // Form State
@@ -30,13 +37,13 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
 
   const filteredItems = items.filter(item => filter === 'ALL' || item.type === filter);
 
-  const handleAddItem = (e: React.FormEvent) => {
+  const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    const item: MarketItem = {
-      id: Date.now().toString(),
+    const item: Omit<MarketItem, 'id'> = {
       seller: user.username,
+      sellerId: user.uid,
       isVerified: false,
       title: newItem.title,
       price: newItem.price,
@@ -46,29 +53,37 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
       contact: newItem.contact
     };
     
-    // Update DB
-    const updatedItems = db.addMarketItem(item);
-    setItems(updatedItems);
-    
-    setIsModalOpen(false);
-    setNewItem({ title: '', price: '', type: 'SELL', category: 'Electronics', description: '', contact: '' });
+    try {
+        // Update DB
+        const addedItem = await db.addMarketItem(item);
+        setItems([addedItem, ...items]);
+        
+        setIsModalOpen(false);
+        setNewItem({ title: '', price: '', type: 'SELL', category: 'Electronics', description: '', contact: '' });
+    } catch (e) {
+        alert("UPLOAD FAILED: Connection interrupted.");
+    }
   };
 
-  const handleDelete = (e: React.MouseEvent, itemId: string) => {
+  const handleDelete = async (e: React.MouseEvent, itemId: string) => {
       e.stopPropagation(); // Stop clicking the card
       if (!user) return;
       
-      // Use standard confirm
       if (window.confirm('CONFIRM DELETION: Are you sure you want to remove this artifact?')) {
+          setProcessingId(itemId);
           try {
-              const updatedItems = db.deleteMarketItem(itemId, user.username);
-              setItems(updatedItems);
+              await db.deleteMarketItem(itemId, user.uid);
+              setItems(prev => prev.filter(i => i.id !== itemId));
               setSelectedItem(null);
           } catch (e: any) {
               alert(e.message || "ACCESS_DENIED: Unauthorized Action.");
+          } finally {
+              setProcessingId(null);
           }
       }
   };
+
+  if (loading) return <div className="text-center p-12 font-mono text-emerald-500"><RefreshCw className="animate-spin inline mr-2" /> CONNECTING TO BLACK MARKET...</div>;
 
   return (
     <div className="space-y-6 animate-[fadeIn_0.5s_ease-out] relative">
@@ -117,72 +132,82 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredItems.map((item) => (
-          <div key={item.id} className="relative group">
-              {/* Card Decoration */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              
-              <div className="relative bg-black border border-slate-800 p-5 h-full flex flex-col justify-between hover:bg-slate-900/50 transition-all">
-                {/* Header: Badge & Delete */}
-                <div className="absolute top-0 right-0 flex">
-                     {user && item.seller === user.username && (
-                         <button 
-                            onClick={(e) => handleDelete(e, item.id)}
-                            className="bg-red-900/80 hover:bg-red-600 text-white h-7 w-7 flex items-center justify-center transition-colors z-50 cursor-pointer"
-                            title="Remove Listing"
-                        >
-                            <Trash2 size={12} />
-                        </button>
-                    )}
-                    <span className={`text-[10px] font-bold px-2 py-1 font-mono uppercase tracking-widest h-7 flex items-center ${
-                        item.type === 'SELL' ? 'bg-emerald-500 text-black' :
-                        item.type === 'BUY' ? 'bg-cyan-500 text-black' :
-                        'bg-purple-500 text-black'
-                    }`}>
-                        {item.type}
-                    </span>
-                </div>
-
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Tag size={14} className="text-slate-500" />
-                        <span className="text-xs text-slate-500 font-mono uppercase">{item.category}</span>
+        {filteredItems.length > 0 ? (
+            filteredItems.map((item) => (
+            <div key={item.id} className="relative group">
+                {/* Card Decoration */}
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                
+                <div className="relative bg-black border border-slate-800 p-5 h-full flex flex-col justify-between hover:bg-slate-900/50 transition-all">
+                    {/* Header: Badge & Delete */}
+                    <div className="absolute top-0 right-0 flex z-20">
+                        {user && item.sellerId === user.uid && (
+                            <button 
+                                onClick={(e) => handleDelete(e, item.id)}
+                                disabled={processingId === item.id}
+                                className="bg-red-900/80 hover:bg-red-600 text-white h-7 w-7 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Remove Listing"
+                            >
+                                {processingId === item.id ? <RefreshCw className="animate-spin" size={12} /> : <Trash2 size={12} />}
+                            </button>
+                        )}
+                        <span className={`text-[10px] font-bold px-2 py-1 font-mono uppercase tracking-widest h-7 flex items-center ${
+                            item.type === 'SELL' ? 'bg-emerald-500 text-black' :
+                            item.type === 'BUY' ? 'bg-cyan-500 text-black' :
+                            'bg-purple-500 text-black'
+                        }`}>
+                            {item.type}
+                        </span>
                     </div>
-                    
-                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors font-mono">{item.title}</h3>
-                    <p className="text-sm text-slate-400 mb-4 line-clamp-2">{item.description}</p>
-                </div>
 
-                <div>
-                    <div className="flex justify-between items-end border-t border-slate-800 pt-3">
-                        <div>
-                            <div className="text-xs text-slate-500 font-mono">SELLER_ID</div>
-                            <div className="flex items-center gap-1 text-sm text-slate-300">
-                                {item.seller === user?.username ? <span className="text-emerald-400 font-bold">(YOU)</span> : item.seller}
-                                {item.isVerified && <ShieldCheck size={14} className="text-emerald-500" />}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Tag size={14} className="text-slate-500" />
+                            <span className="text-xs text-slate-500 font-mono uppercase">{item.category}</span>
+                        </div>
+                        
+                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors font-mono">{item.title}</h3>
+                        <p className="text-sm text-slate-400 mb-4 line-clamp-2">{item.description}</p>
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-end border-t border-slate-800 pt-3">
+                            <div>
+                                <div className="text-xs text-slate-500 font-mono">SELLER_ID</div>
+                                <div className="flex items-center gap-1 text-sm text-slate-300">
+                                    {item.sellerId === user?.uid ? <span className="text-emerald-400 font-bold">(YOU)</span> : item.seller}
+                                    {item.isVerified && <ShieldCheck size={14} className="text-emerald-500" />}
+                                </div>
+                            </div>
+                            <div className="text-xl font-bold text-emerald-400 font-mono">
+                                {item.price}
                             </div>
                         </div>
-                        <div className="text-xl font-bold text-emerald-400 font-mono">
-                            {item.price}
-                        </div>
+                        
+                        {item.sellerId !== user?.uid ? (
+                            <button 
+                            onClick={() => setSelectedItem(item)}
+                            className="w-full mt-3 py-2 border border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 text-xs font-mono uppercase tracking-wider transition-all"
+                            >
+                                INITIATE_CONTACT
+                            </button>
+                        ) : (
+                            <div className="w-full mt-3 py-2 text-center text-slate-600 text-xs font-mono border border-transparent">
+                                // LISTING_ACTIVE //
+                            </div>
+                        )}
                     </div>
-                    
-                    {item.seller !== user?.username ? (
-                        <button 
-                        onClick={() => setSelectedItem(item)}
-                        className="w-full mt-3 py-2 border border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 text-xs font-mono uppercase tracking-wider transition-all"
-                        >
-                            INITIATE_CONTACT
-                        </button>
-                    ) : (
-                        <div className="w-full mt-3 py-2 text-center text-slate-600 text-xs font-mono border border-transparent">
-                            // LISTING_ACTIVE //
-                        </div>
-                    )}
                 </div>
-              </div>
-          </div>
-        ))}
+            </div>
+            ))
+        ) : (
+             <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-600 border border-dashed border-slate-800 bg-black/40">
+                <AlertCircle size={48} className="mb-4 text-slate-700" />
+                <p className="font-mono text-lg mb-2">NO_ARTIFACTS_FOUND</p>
+                <p className="text-sm">Be the first to smuggle something in.</p>
+                <button onClick={() => setIsModalOpen(true)} className="mt-4 text-emerald-500 hover:text-emerald-400 text-xs underline font-mono">UPLOAD_FIRST_ITEM</button>
+             </div>
+        )}
       </div>
 
       {/* Add Item Modal */}

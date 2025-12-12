@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { DaySchedule, TimetableSlot } from '../types';
-import { Upload, Loader, Cpu } from 'lucide-react';
+import { DaySchedule, TimetableSlot, User } from '../types';
+import { Upload, Loader, Cpu, RefreshCw } from 'lucide-react';
 import { parseTimetableImage } from '../services/geminiService';
 import { db } from '../services/db';
 
-const Timetable: React.FC = () => {
+const Timetable: React.FC<{user: User}> = ({ user }) => {
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [activeDay, setActiveDay] = useState('Monday');
   const [isUploading, setIsUploading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    // Load from DB on mount
-    const savedTimetable = db.getTimetable();
-    if (savedTimetable.length > 0) {
-        setSchedule(savedTimetable);
-    }
-  }, []);
+    const loadTimetable = async () => {
+        setLoadingData(true);
+        const data = await db.getTimetable(user.uid);
+        if (data.length > 0) setSchedule(data);
+        setLoadingData(false);
+    };
+    loadTimetable();
+  }, [user.uid]);
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const currentDaySchedule = schedule.find(d => d.day === activeDay)?.slots || [];
@@ -28,7 +31,6 @@ const Timetable: React.FC = () => {
     const reader = new FileReader();
     reader.onloadend = async () => {
         const base64String = reader.result as string;
-        // Strip prefix for API
         const base64Data = base64String.split(',')[1];
         
         try {
@@ -38,8 +40,8 @@ const Timetable: React.FC = () => {
             if (Array.isArray(parsedSchedule) && parsedSchedule.length > 0) {
                 setSchedule(parsedSchedule);
                 // Save and Sync
-                db.saveTimetable(parsedSchedule);
-                db.syncSubjectsFromTimetable(parsedSchedule);
+                await db.saveTimetable(user.uid, parsedSchedule);
+                await db.syncSubjectsFromTimetable(user.uid, parsedSchedule);
                 alert("SYSTEM UPDATE: Timetable deciphered. Attendance metrics re-calibrated.");
             }
         } catch (err) {
@@ -50,6 +52,10 @@ const Timetable: React.FC = () => {
     };
     reader.readAsDataURL(file);
   };
+
+  if (loadingData) {
+     return <div className="text-center p-8 text-cyan-500 font-mono"><RefreshCw className="animate-spin inline mr-2"/> SYNCING TEMPORAL DATA...</div>;
+  }
 
   return (
     <div className="space-y-6">

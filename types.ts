@@ -1,5 +1,7 @@
 export interface User {
+  uid: string; // Firebase Auth UID
   username: string;
+  email: string;
   isLoggedIn: boolean;
   department?: string;
 }
@@ -44,7 +46,8 @@ export interface MarketItem {
   id: string;
   title: string;
   price: string;
-  seller: string;
+  seller: string; // Username
+  sellerId: string; // UID for permission checks
   type: 'SELL' | 'BUY' | 'EXCHANGE';
   category: string;
   description: string;

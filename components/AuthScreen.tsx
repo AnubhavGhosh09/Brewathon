@@ -8,6 +8,8 @@ interface AuthScreenProps {
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [department, setDepartment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +18,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
   
   // Matrix typing effect
   useEffect(() => {
-    const targetText = "INITIATING SYSTEM... CONNECTING TO COLLEGE SERVER...";
+    const targetText = "ESTABLISHING SECURE CONNECTION... FIREBASE AUTH PROTOCOL...";
     let i = 0;
     const interval = setInterval(() => {
         setText(targetText.slice(0, i));
@@ -26,33 +28,33 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username) return;
     setError('');
     setLoading(true);
 
-    // Simulate Network Latency for aesthetic
-    setTimeout(() => {
-        try {
-            let userData;
-            if (isLogin) {
-                // Login
-                userData = db.login(username);
-                if (!userData) {
-                    throw new Error("ACCESS_DENIED: User ID not found in mainframe.");
-                }
-            } else {
-                // Register
-                if (!department) throw new Error("DEPT_CODE_MISSING");
-                userData = db.register(username, department);
-            }
-            onLogin(userData);
-        } catch (err: any) {
-            setError(err.message || "SYSTEM_FAILURE");
-            setLoading(false);
+    try {
+        let userData;
+        if (isLogin) {
+            userData = await db.login(email, password);
+        } else {
+            if (!username) throw new Error("ID_REQUIRED");
+            if (!department) throw new Error("DEPT_REQUIRED");
+            userData = await db.register(email, password, username, department);
         }
-    }, 1200);
+        // App.tsx auth listener will handle the state update, 
+        // but we can call onLogin here for immediate feedback if needed.
+        // For Firebase, relying on the auth listener is safer.
+    } catch (err: any) {
+        let msg = err.message;
+        if (msg.includes('auth/invalid-email')) msg = "INVALID_EMAIL_FORMAT";
+        if (msg.includes('auth/wrong-password')) msg = "ACCESS_DENIED: CREDENTIALS INVALID";
+        if (msg.includes('auth/user-not-found')) msg = "USER_NOT_FOUND_IN_DATABASE";
+        if (msg.includes('auth/email-already-in-use')) msg = "EMAIL_ALREADY_REGISTERED";
+        setError(msg);
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -71,35 +73,65 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             
             <div className="text-center mb-8">
                 <div className="inline-block p-4 rounded-full bg-cyan-950/50 border border-cyan-500/50 mb-4 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
-                    <span className="text-4xl">🎓</span>
+                    <span className="text-4xl">🔥</span>
                 </div>
                 <h1 className="text-3xl font-bold text-white tracking-wider mb-2">COLLEGE HUB</h1>
-                <p className="text-cyan-400 font-mono text-sm h-6">{text}<span className="animate-pulse">_</span></p>
+                <p className="text-cyan-400 font-mono text-xs h-6">{text}<span className="animate-pulse">_</span></p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                
+                {/* Email Field */}
                 <div>
-                    <label className="block text-slate-400 text-xs uppercase tracking-widest mb-2">Username</label>
+                    <label className="block text-slate-400 text-[10px] uppercase tracking-widest mb-1">Email Address</label>
                     <input 
-                        type="text" 
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        type="email" 
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] outline-none transition-all font-mono"
-                        placeholder="ENTER_ID"
+                        placeholder="student@college.edu"
+                    />
+                </div>
+
+                {/* Password Field */}
+                <div>
+                    <label className="block text-slate-400 text-[10px] uppercase tracking-widest mb-1">Password</label>
+                    <input 
+                        type="password" 
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] outline-none transition-all font-mono"
+                        placeholder="••••••••"
                     />
                 </div>
                 
                 {!isLogin && (
-                    <div>
-                         <label className="block text-slate-400 text-xs uppercase tracking-widest mb-2">Department Code</label>
-                         <input 
-                            type="text" 
-                            value={department}
-                            onChange={(e) => setDepartment(e.target.value)}
-                            className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-pink-500 focus:shadow-[0_0_15px_rgba(255,94,98,0.2)] outline-none transition-all font-mono"
-                            placeholder="CS / EC / ME"
-                        />
-                    </div>
+                    <>
+                        <div>
+                            <label className="block text-slate-400 text-[10px] uppercase tracking-widest mb-1">Username / Codename</label>
+                            <input 
+                                type="text" 
+                                required
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-pink-500 focus:shadow-[0_0_15px_rgba(255,94,98,0.2)] outline-none transition-all font-mono"
+                                placeholder="ENTER_ID"
+                            />
+                        </div>
+                        <div>
+                             <label className="block text-slate-400 text-[10px] uppercase tracking-widest mb-1">Department Code</label>
+                             <input 
+                                type="text" 
+                                required
+                                value={department}
+                                onChange={(e) => setDepartment(e.target.value)}
+                                className="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-white focus:border-pink-500 focus:shadow-[0_0_15px_rgba(255,94,98,0.2)] outline-none transition-all font-mono"
+                                placeholder="CS / EC / ME"
+                            />
+                        </div>
+                    </>
                 )}
                 
                 {error && (
@@ -111,7 +143,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                 <button 
                     type="submit" 
                     disabled={loading}
-                    className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all transform hover:scale-[1.02] flex justify-center items-center gap-2"
+                    className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all transform hover:scale-[1.02] flex justify-center items-center gap-2 mt-4"
                 >
                     {loading ? (
                         <>Processing <span className="animate-spin">⟳</span></>
@@ -126,7 +158,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                     onClick={() => { setIsLogin(!isLogin); setError(''); }}
                     className="text-slate-500 text-sm hover:text-cyan-400 transition-colors"
                 >
-                    {isLogin ? "New Student? Initialize Protocol" : "Already Registered? Login"}
+                    {isLogin ? "New Student? Initialize Protocol" : "Back to Login"}
                 </button>
             </div>
         </div>

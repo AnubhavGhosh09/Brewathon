@@ -1,132 +1,161 @@
-// Mock Service - No external API dependency
-// Replaces Google GenAI with simple template logic for offline functionality
+import { GoogleGenAI } from "@google/genai";
+
+// Initialize Gemini Client
+// The API key is obtained exclusively from the environment variable process.env.API_KEY
+// which is injected by the build process (vite.config.ts).
+const apiKey = process.env.API_KEY;
+
+let ai: GoogleGenAI | null = null;
+if (apiKey) {
+    ai = new GoogleGenAI({ apiKey: apiKey });
+}
+
+// Helper to check AI availability
+const checkAI = () => {
+    if (!ai) throw new Error("API_KEY_MISSING: Gemini Neural Link Offline.");
+};
 
 export const chatWithSenior = async (
   message: string,
-  _history: { role: string; content: string }[]
+  history: { role: string; content: string }[]
 ): Promise<string> => {
-  // Simulate delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  const lowerMsg = message.toLowerCase();
-
-  if (lowerMsg.includes('attendance')) {
-      return "Listen kid, 85% is the magic number. Anything less and you're begging the HOD. Check your survival metrics.";
-  }
-  if (lowerMsg.includes('food') || lowerMsg.includes('canteen')) {
-      return "Gobi Manchurian. That's it. That's the food pyramid here. Canteen A has better chai though.";
-  }
-  if (lowerMsg.includes('bunk')) {
-      return "You can bunk if your attendance is > 90%. Otherwise, sit down and study. Don't be a hero.";
-  }
-  if (lowerMsg.includes('exam') || lowerMsg.includes('test')) {
-      return "Start studying 2 nights before. Use the library. And get the previous year question papers from the Xerox shop.";
-  }
-  if (lowerMsg.includes('club') || lowerMsg.includes('join')) {
-      return "Join technical clubs for skills, cultural clubs for vibes. Don't join everything or you'll burn out.";
-  }
-
-  return "I'm just a simulated senior (Offline Mode), but I'd say: focus on your labs and make good friends. That's the real survival guide.";
-};
-
-export const parseTimetableImage = async (_base64Image: string): Promise<string> => {
-   // Simulate delay
-   await new Promise(resolve => setTimeout(resolve, 1500));
-   
-   return JSON.stringify([
-      {
-        day: "Monday",
-        slots: [
-             { time: "09:00", subject: "Math (Scanned)", type: "Lecture", room: "LH-1" },
-             { time: "11:00", subject: "Physics (Scanned)", type: "Lecture", room: "LH-2" },
-             { time: "14:00", subject: "C-Lab", type: "Lab", room: "LAB-1" }
-        ]
-      },
-      {
-        day: "Tuesday",
-        slots: [
-             { time: "09:00", subject: "Electronics", type: "Lecture", room: "LH-3" },
-             { time: "11:00", subject: "English", type: "Lecture", room: "LH-1" }
-        ]
-      }
-   ]);
-};
-
-// Direct Generation Functions to avoid parsing errors
-export const generateExcuse = async (reason: string, intensity: number): Promise<string> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  try {
+    checkAI();
     
-    if (intensity > 80) {
-        return `I couldn't submit the assignment on "${reason}" because a cosmic ray flipped a bit in my hard drive, corrupting specifically that folder. I need 24 hours to reconstruct the data manually.`;
-    } else if (intensity < 30) {
-         return `I apologize for the delay regarding ${reason}. I had a sudden family medical emergency that required my immediate attention.`;
-    } else {
-        return `I couldn't attend because of ${reason}. My laptop initiated a mandatory BIOS update right when I was about to start, and it took 3 hours to complete.`;
+    const systemInstruction = "You are a 'Senior' at an engineering college. You are sarcastic, helpful, street-smart, and use college slang (like 'bunk', 'proxy', 'Gobi Manchurian'). Your goal is to guide fresher students. Keep answers concise (under 50 words usually). If asked about attendance, emphasize the 85% rule strictly.";
+
+    // Map history to the format expected by the SDK
+    const contents = history.map(h => ({
+        role: h.role === 'senior' ? 'model' : 'user',
+        parts: [{ text: h.content }]
+    }));
+    
+    const model = "gemini-2.5-flash";
+    const response = await ai!.models.generateContent({
+        model,
+        contents: [...contents, { role: 'user', parts: [{ text: message }] }],
+        config: {
+            systemInstruction,
+            temperature: 0.9,
+            maxOutputTokens: 200,
+        }
+    });
+
+    return response.text || "Thinking... (Error: Empty Response)";
+
+  } catch (error: any) {
+    console.error("Gemini Error:", error);
+    if (error.message?.includes("API_KEY")) return "SYSTEM ERROR: NEURAL LINK SEVERED (API KEY MISSING).";
+    return "Senior Bot is currently napping (Service Error). Try again later.";
+  }
+};
+
+export const parseTimetableImage = async (base64Image: string): Promise<string> => {
+   try {
+       checkAI();
+
+       const prompt = `Analyze this image of a timetable. 
+       Extract the schedule into a strict JSON array format. 
+       Return ONLY the JSON string, no markdown formatting.
+       
+       Schema:
+       Array<{
+         day: string, // e.g., "Monday", "Tuesday"
+         slots: Array<{
+           time: string, // e.g., "09:00" or "9:00-10:00"
+           subject: string,
+           type: "Lecture" | "Lab" | "Free" | "Lunch",
+           room: string // Optional
+         }>
+       }>
+       
+       If a slot is free/empty, mark type as 'Free'.
+       If it's a break/lunch, mark type as 'Lunch'.
+       Infer 'Lecture' vs 'Lab' based on duration or naming (Labs are usually 2-3 hours).
+       `;
+
+       const response = await ai!.models.generateContent({
+           model: "gemini-2.5-flash",
+           contents: {
+               parts: [
+                   { inlineData: { mimeType: "image/jpeg", data: base64Image } },
+                   { text: prompt }
+               ]
+           }
+       });
+
+       let jsonStr = response.text || "[]";
+       // Clean markdown code blocks if present
+       jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
+       return jsonStr;
+
+   } catch (error) {
+       console.error("OCR Error:", error);
+       throw new Error("Failed to decode visual data.");
+   }
+};
+
+export const generateExcuse = async (reason: string, intensity: number): Promise<string> => {
+    try {
+        checkAI();
+        const prompt = `Generate a creative excuse for missing a college responsibility.
+        Reason: ${reason}
+        Intensity Level (0-100): ${intensity}
+        
+        0-30: Believable, mild (family issue, sickness).
+        31-70: Elaborate, tech-focused or bureaucratic.
+        71-100: Absurd, sci-fi, or "matrix" style glitch.
+        
+        Return ONLY the excuse text. Short and punchy.`;
+
+        const response = await ai!.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: { temperature: 1.0 }
+        });
+        
+        return response.text || "Error generating excuse.";
+    } catch (e) {
+        return "Excuse Module Offline: Just say you had a flat tire.";
     }
 };
 
 export const generateDraftEmail = async (recipient: string, topic: string, tone: string): Promise<string> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const subjectLine = topic.length > 40 ? topic.substring(0, 40) + "..." : topic;
-    
-    let opening = "I hope this email finds you well.";
-    let bodyIntro = `I am writing to respectfully inform you about: ${topic}.`;
-    let closing = "Thank you for your time and consideration.";
+    try {
+        checkAI();
+        const prompt = `Write a college email.
+        Recipient: ${recipient}
+        Topic: ${topic}
+        Tone: ${tone} (Professional/Apologetic/Desperate/Urgent)
+        
+        Output format:
+        Subject: ...
+        
+        Body text...
+        `;
 
-    if (tone === 'Apologetic') {
-        opening = "I am writing to you with sincere apologies.";
-        bodyIntro = `I regret to inform you about the following situation: ${topic}. I understand this is not ideal.`;
-        closing = "I appreciate your understanding in this matter.";
-    } else if (tone === 'Urgent') {
-        opening = "I am writing to bring an urgent matter to your attention.";
-        bodyIntro = `The situation is as follows: ${topic}. This requires immediate action.`;
-        closing = "I look forward to your prompt response.";
-    } else if (tone === 'Desperate') {
-        opening = "I am writing to you in a difficult situation.";
-        bodyIntro = `I am really struggling with ${topic} and I am hoping you can help me out.`;
-        closing = "Please consider my request, it would mean a lot.";
+        const response = await ai!.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+        });
+
+        return response.text || "Error generating email.";
+    } catch (e) {
+        return "Email Protocol Failed.";
     }
-
-    return `Subject: ${tone === 'Urgent' ? 'URGENT: ' : ''}Regarding ${subjectLine}
-
-Dear ${recipient},
-
-${opening}
-
-${bodyIntro}
-
-Given the circumstances, I would be extremely grateful if you could consider my case. I am committed to catching up on any missed work immediately.
-
-${closing}
-
-Sincerely,
-[Your Name]
-Roll No: [Your ID]
-Department of Engineering`;
 };
 
-// Legacy wrapper for compatibility
-export const generateAIResponse = async (prompt: string, _systemInstruction: string): Promise<string> => {
-  if (prompt.startsWith('Generate an excuse for:')) {
-      const reasonMatch = prompt.match(/Generate an excuse for: ([\s\S]*?)\. Believability/);
-      const reason = reasonMatch ? reasonMatch[1] : "unforeseen circumstances";
-      const intensityMatch = prompt.match(/Believability level: (\d+)%/);
-      const intensity = intensityMatch ? parseInt(intensityMatch[1]) : 50;
-      return generateExcuse(reason, intensity);
-  }
-
-  if (prompt.startsWith('Write an email to')) {
-      const recipientMatch = prompt.match(/Write an email to ([\s\S]*?) about:/);
-      const topicMatch = prompt.match(/about: ([\s\S]*?)\. Tone:/);
-      const toneMatch = prompt.match(/Tone: (.*?)\./);
-
-      const recipient = recipientMatch ? recipientMatch[1] : "Professor";
-      const topic = topicMatch ? topicMatch[1] : "Subject Matter";
-      const tone = toneMatch ? toneMatch[1] : "Professional";
-      
-      return generateDraftEmail(recipient, topic, tone);
-  }
-
-  return "AI Module Offline. Please input specific parameters.";
+// Legacy/Compatibility wrapper
+export const generateAIResponse = async (prompt: string, systemInstruction: string): Promise<string> => {
+    try {
+        checkAI();
+        const response = await ai!.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: { systemInstruction }
+        });
+        return response.text || "";
+    } catch (e) {
+        return "AI Offline";
+    }
 };

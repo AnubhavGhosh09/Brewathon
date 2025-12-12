@@ -9,37 +9,64 @@ import AITools from './components/AITools';
 import AuthScreen from './components/AuthScreen';
 import SeniorBot from './components/SeniorBot';
 import { AppView, User } from './types';
-import { INITIAL_SUBJECTS } from './constants';
 import { db } from './services/db';
+import { auth } from './services/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { dbInstance } from './services/firebaseConfig';
+import { Loader } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [isPanicMode, setIsPanicMode] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
-    // Initialize Database
-    db.init();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Fetch additional user data from Firestore
+        try {
+            const userDoc = await getDoc(doc(dbInstance, "users", firebaseUser.uid));
+            const userData = userDoc.exists() ? userDoc.data() : {};
+            
+            setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                username: firebaseUser.displayName || userData.username || 'Student',
+                department: userData.department,
+                isLoggedIn: true
+            });
+        } catch (e) {
+            console.error("Error fetching user profile:", e);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoadingAuth(false);
+    });
 
-    // Check for active session
-    const sessionUser = db.getSession();
-    if (sessionUser) {
-      setUser(sessionUser);
-    }
+    return () => unsubscribe();
   }, []);
-
-  const handleLogin = (newUser: User) => {
-    setUser(newUser);
-  };
 
   const handleLogout = () => {
     db.logout();
-    setUser(null);
     setCurrentView(AppView.DASHBOARD);
   };
 
+  if (isLoadingAuth) {
+      return (
+          <div className="min-h-screen bg-black flex items-center justify-center">
+              <div className="text-cyan-500 font-mono flex flex-col items-center gap-4">
+                  <Loader className="animate-spin" size={32} />
+                  <span className="animate-pulse">CONNECTING TO MAINFRAME...</span>
+              </div>
+          </div>
+      );
+  }
+
   if (!user) {
-    return <AuthScreen onLogin={handleLogin} />;
+    return <AuthScreen onLogin={(u) => setUser(u)} />;
   }
 
   return (
@@ -67,16 +94,16 @@ const App: React.FC = () => {
 
         <main className="max-w-7xl mx-auto px-4 pb-20">
             {currentView === AppView.DASHBOARD && (
-                <Dashboard setView={setCurrentView} subjects={INITIAL_SUBJECTS} />
+                <Dashboard setView={setCurrentView} user={user} />
             )}
             {currentView === AppView.TIMETABLE && (
-                <Timetable />
+                <Timetable user={user} />
             )}
             {currentView === AppView.CLUBS && (
                 <ClubExplorer />
             )}
             {currentView === AppView.ATTENDANCE && (
-                <Attendance setPanicMode={setIsPanicMode} />
+                <Attendance setPanicMode={setIsPanicMode} user={user} />
             )}
             {currentView === AppView.MARKETPLACE && (
                 <Marketplace user={user} />

@@ -1,68 +1,86 @@
 import React, { useEffect, useState } from 'react';
-import { AppView, Subject } from '../types';
-import { Clock, Calendar, Users, Terminal } from 'lucide-react';
+import { AppView, User } from '../types';
+import { Clock, Calendar, Users, Terminal, Loader } from 'lucide-react';
 import { db } from '../services/db';
 
 interface DashboardProps {
   setView: (view: AppView) => void;
-  subjects: Subject[];
+  user: User;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
+const Dashboard: React.FC<DashboardProps> = ({ setView, user }) => {
   const [nextClass, setNextClass] = useState("SCANNING...");
   const [stealthSlots, setStealthSlots] = useState(0);
   const [survivalStats, setSurvivalStats] = useState({ percent: 100, attended: 0, total: 0 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Calculate Survival Metrics (Attendance)
-    const subjects = db.getSubjects();
-    const total = subjects.reduce((acc, sub) => acc + sub.total, 0);
-    const attended = subjects.reduce((acc, sub) => acc + sub.attended, 0);
-    const percent = total > 0 ? Math.round((attended / total) * 100) : 100;
-    setSurvivalStats({ percent, attended, total });
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // 1. Calculate Survival Metrics (Attendance)
+            const subjects = await db.getSubjects(user.uid);
+            const total = subjects.reduce((acc, sub) => acc + sub.total, 0);
+            const attended = subjects.reduce((acc, sub) => acc + sub.attended, 0);
+            const percent = total > 0 ? Math.round((attended / total) * 100) : 100;
+            setSurvivalStats({ percent, attended, total });
 
-    // 2. Real-time Timetable Logic
-    const timetable = db.getTimetable();
-    const now = new Date();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const currentDayName = days[now.getDay()];
+            // 2. Real-time Timetable Logic
+            const timetable = await db.getTimetable(user.uid);
+            const now = new Date();
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const currentDayName = days[now.getDay()];
 
-    if (currentDayName === 'Sunday') {
-        setNextClass("WEEKEND_PROTOCOL");
-    } else {
-        const todaySchedule = timetable.find(d => d.day === currentDayName);
-
-        if (todaySchedule && todaySchedule.slots.length > 0) {
-            // Count Stealth Slots (Free)
-            const freeCount = todaySchedule.slots.filter(s => s.type === 'Free' || s.type === 'Lunch').length;
-            setStealthSlots(freeCount);
-
-            // Find Next Class
-            const currentHour = now.getHours();
-            const currentMin = now.getMinutes();
-            
-            // Sort slots by time (simple ASCII compare works for HH:MM 24h)
-            const sortedSlots = [...todaySchedule.slots].sort((a, b) => a.time.localeCompare(b.time));
-
-            const upcoming = sortedSlots.find(slot => {
-                const [h, m] = slot.time.split(':').map(Number);
-                if (h > currentHour) return true;
-                if (h === currentHour && m > currentMin) return true;
-                return false;
-            });
-
-            if (upcoming) {
-                setNextClass(`${upcoming.subject} @ ${upcoming.time}`);
+            if (currentDayName === 'Sunday') {
+                setNextClass("WEEKEND_PROTOCOL");
             } else {
-                setNextClass("ALL_OPS_COMPLETE");
+                const todaySchedule = timetable.find(d => d.day === currentDayName);
+
+                if (todaySchedule && todaySchedule.slots.length > 0) {
+                    // Count Stealth Slots (Free)
+                    const freeCount = todaySchedule.slots.filter(s => s.type === 'Free' || s.type === 'Lunch').length;
+                    setStealthSlots(freeCount);
+
+                    // Find Next Class
+                    const currentHour = now.getHours();
+                    const currentMin = now.getMinutes();
+                    
+                    const sortedSlots = [...todaySchedule.slots].sort((a, b) => a.time.localeCompare(b.time));
+
+                    const upcoming = sortedSlots.find(slot => {
+                        const [h, m] = slot.time.split(':').map(Number);
+                        if (h > currentHour) return true;
+                        if (h === currentHour && m > currentMin) return true;
+                        return false;
+                    });
+
+                    if (upcoming) {
+                        setNextClass(`${upcoming.subject} @ ${upcoming.time}`);
+                    } else {
+                        setNextClass("ALL_OPS_COMPLETE");
+                    }
+                } else {
+                    setNextClass("NO_SCHEDULE_DATA");
+                }
             }
-        } else {
-             setNextClass("NO_SCHEDULE_DATA");
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
-    }
-  }, []);
+    };
+    loadData();
+  }, [user.uid]);
 
   const isCritical = survivalStats.percent < 85;
+
+  if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+            <Loader className="animate-spin text-cyan-500" size={32} />
+        </div>
+      );
+  }
 
   return (
     <div className="space-y-6 animate-[fadeIn_0.5s_ease-out]">
@@ -70,7 +88,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
             <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-purple-500 mb-2 font-mono tracking-tighter">
                 SYSTEM_STATUS
             </h1>
-            <p className="text-emerald-500/70 font-mono text-sm tracking-widest typing-effect">WELCOME BACK, OPERATOR.</p>
+            <p className="text-emerald-500/70 font-mono text-sm tracking-widest typing-effect">WELCOME BACK, OPERATOR {user.username.toUpperCase()}.</p>
         </div>
 
         {/* Top Stats Row */}

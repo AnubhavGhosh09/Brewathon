@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Subject } from '../types';
-import { AlertTriangle, CheckCircle, XCircle, ShieldAlert, Settings, Save, X } from 'lucide-react';
+import { Subject, User } from '../types';
+import { AlertTriangle, CheckCircle, XCircle, ShieldAlert, Settings, Save, X, RefreshCw } from 'lucide-react';
 import { db } from '../services/db';
 
 interface AttendanceProps {
   setPanicMode: (isPanic: boolean) => void;
+  user: User;
 }
 
-const Attendance: React.FC<AttendanceProps> = ({ setPanicMode }) => {
+const Attendance: React.FC<AttendanceProps> = ({ setPanicMode, user }) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{attended: number, total: number}>({ attended: 0, total: 0 });
 
   useEffect(() => {
-    // Load from DB instead of constants
-    const loadedSubjects = db.getSubjects();
-    setSubjects(loadedSubjects);
-  }, []);
+    const fetchSubjects = async () => {
+        setLoading(true);
+        const data = await db.getSubjects(user.uid);
+        setSubjects(data);
+        setLoading(false);
+    };
+    fetchSubjects();
+  }, [user.uid]);
 
   // Calculate overall percentage and check for panic mode
   const totalClasses = subjects.reduce((acc, sub) => acc + sub.total, 0);
@@ -27,12 +33,12 @@ const Attendance: React.FC<AttendanceProps> = ({ setPanicMode }) => {
     setPanicMode(overallPercentage < 85);
   }, [overallPercentage, setPanicMode]);
 
-  const saveSubjectsToDb = (newSubjects: Subject[]) => {
-      setSubjects(newSubjects);
-      db.saveSubjects(newSubjects);
+  const saveSubjectsToDb = async (newSubjects: Subject[]) => {
+      setSubjects(newSubjects); // Optimistic UI update
+      await db.saveSubjects(user.uid, newSubjects);
   };
 
-  const updateAttendance = (id: string, type: 'attend' | 'bunk') => {
+  const updateAttendance = async (id: string, type: 'attend' | 'bunk') => {
     const newSubjects = subjects.map(sub => {
       if (sub.id === id) {
         return {
@@ -43,7 +49,7 @@ const Attendance: React.FC<AttendanceProps> = ({ setPanicMode }) => {
       }
       return sub;
     });
-    saveSubjectsToDb(newSubjects);
+    await saveSubjectsToDb(newSubjects);
   };
 
   const startEdit = (subject: Subject) => {
@@ -55,20 +61,28 @@ const Attendance: React.FC<AttendanceProps> = ({ setPanicMode }) => {
       setEditingId(null);
   };
 
-  const saveEdit = (id: string) => {
+  const saveEdit = async (id: string) => {
       const newSubjects = subjects.map(sub => {
           if (sub.id === id) {
               return {
                   ...sub,
-                  attended: Math.min(editValues.attended, editValues.total), // Prevent attended > total
+                  attended: Math.min(editValues.attended, editValues.total), 
                   total: editValues.total
               };
           }
           return sub;
       });
-      saveSubjectsToDb(newSubjects);
+      await saveSubjectsToDb(newSubjects);
       setEditingId(null);
   };
+
+  if (loading) {
+      return (
+          <div className="flex justify-center items-center h-64 text-emerald-500 font-mono gap-2">
+              <RefreshCw className="animate-spin" /> DOWNLOADING METRICS...
+          </div>
+      );
+  }
 
   return (
     <div className="space-y-6">
@@ -163,9 +177,6 @@ const Attendance: React.FC<AttendanceProps> = ({ setPanicMode }) => {
                                         className="w-full bg-slate-900 border border-slate-600 text-white p-2 font-mono focus:border-emerald-500 outline-none"
                                     />
                                 </div>
-                             </div>
-                             <div className="p-2 bg-slate-900/50 text-[10px] text-slate-400 font-mono border border-slate-800">
-                                MANUAL OVERRIDE: Directly configuring the mainframe data. 
                              </div>
                              <button 
                                 onClick={() => saveEdit(subject.id)}
