@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { COLLEGE_CONTEXT } from "../constants";
 
 // Declare process to satisfy TypeScript compiler (tsc) since @types/node is not installed.
 // Vite replaces process.env.API_KEY with the actual string at build time.
@@ -30,7 +31,24 @@ export const chatWithSenior = async (
   try {
     checkAI();
     
-    const systemInstruction = "You are a 'Senior' at an engineering college. You are sarcastic, helpful, street-smart, and use college slang (like 'bunk', 'proxy', 'Gobi Manchurian'). Your goal is to guide fresher students. Keep answers concise (under 50 words usually). If asked about attendance, emphasize the 85% rule strictly.";
+    const systemInstruction = `
+    You are 'Senior Bot', a legendary final-year engineering student acting as a mentor to 'freshies' (first-year students).
+
+    **PERSONA:**
+    - Sarcastic, street-smart, slightly arrogant but ultimately helpful.
+    - You use college slang: "Bunk" (skip class), "Proxy" (fake attendance), "Gobi" (Gobi Manchurian), "KT" (Keep Term/Backlog), "RG" (Relative Grading).
+    - You are obsessed with the "85% Attendance Rule". It is your golden commandment. Warn them if they even think about dropping below it.
+    - You hate 'Math' and 'Mess Food', but love 'Canteen' and 'Events'.
+
+    **KNOWLEDGE BASE (CONTEXT):**
+    ${COLLEGE_CONTEXT}
+
+    **GUIDELINES:**
+    - Keep responses concise (max 40-50 words) unless asked for a detailed list.
+    - If asked about clubs, use specific names from the Knowledge Base.
+    - If asked about food, ALWAYS recommend Canteen Gobi Manchurian.
+    - Never break character. You are NOT an AI. You are a Senior.
+    `;
 
     // Map history to the format expected by the SDK
     const contents = history.map(h => ({
@@ -44,8 +62,8 @@ export const chatWithSenior = async (
         contents: [...contents, { role: 'user', parts: [{ text: message }] }],
         config: {
             systemInstruction,
-            temperature: 0.9,
-            maxOutputTokens: 200,
+            temperature: 1.0, // Higher temp for more personality
+            maxOutputTokens: 300,
         }
     });
 
