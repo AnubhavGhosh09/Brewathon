@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Search, Plus, Filter, ShieldCheck, Tag, X, Send, Trash2 } from 'lucide-react';
+import { Search, Plus, ShieldCheck, Tag, X, Trash2 } from 'lucide-react';
 import { MarketItem, User } from '../types';
 import { db } from '../services/db';
 

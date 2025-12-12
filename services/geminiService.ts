@@ -1,10 +1,8 @@
-import { COLLEGE_CONTEXT } from "../constants";
-
 // Mock Service - No external API dependency
 
 export const chatWithSenior = async (
   message: string,
-  history: { role: string; content: string }[]
+  _history: { role: string; content: string }[]
 ): Promise<string> => {
   // Simulate delay
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -24,7 +22,7 @@ export const chatWithSenior = async (
   return "I'm currently running in offline mode (API Disconnected). But seriously, focus on your labs.";
 };
 
-export const parseTimetableImage = async (base64Image: string): Promise<string> => {
+export const parseTimetableImage = async (_base64Image: string): Promise<string> => {
    // Simulate delay
    await new Promise(resolve => setTimeout(resolve, 1500));
    
@@ -41,7 +39,7 @@ export const parseTimetableImage = async (base64Image: string): Promise<string> 
    ]);
 };
 
-export const generateAIResponse = async (prompt: string, systemInstruction: string): Promise<string> => {
+export const generateAIResponse = async (prompt: string, _systemInstruction: string): Promise<string> => {
   await new Promise(resolve => setTimeout(resolve, 1000));
   
   if (prompt.includes('excuse')) {

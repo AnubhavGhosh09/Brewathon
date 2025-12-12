@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AppView, Subject } from '../types';
-import { Clock, Calendar, AlertTriangle, Users, Terminal, CheckCircle2 } from 'lucide-react';
+import { Clock, Calendar, Users, Terminal } from 'lucide-react';
 import { db } from '../services/db';
 
 interface DashboardProps {

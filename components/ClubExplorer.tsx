@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { INITIAL_CLUBS } from '../constants';
-import { Search, Users, Network, Filter, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Users, Network, Filter, CheckCircle2 } from 'lucide-react';
 
 const ClubExplorer: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');

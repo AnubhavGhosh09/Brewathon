@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { generateAIResponse } from '../services/geminiService';
-import { Terminal, Sparkles, Mail, Ghost, Copy, RefreshCw } from 'lucide-react';
+import { Sparkles, Mail, Ghost, Copy, RefreshCw } from 'lucide-react';
 
 const AITools: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'EXCUSE' | 'EMAIL'>('EXCUSE');

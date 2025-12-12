@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DaySchedule, TimetableSlot } from '../types';
-import { Upload, Loader, Calendar as CalIcon, Cpu } from 'lucide-react';
+import { Upload, Loader, Cpu } from 'lucide-react';
 import { parseTimetableImage } from '../services/geminiService';
 import { db } from '../services/db';
 
@@ -114,7 +114,6 @@ const Timetable: React.FC = () => {
 };
 
 const SlotCard: React.FC<{ slot: TimetableSlot }> = ({ slot }) => {
-    const isFree = slot.type === 'Free' || slot.type === 'Lunch';
     const colorClass = 
         slot.type === 'Lecture' ? 'border-l-4 border-l-indigo-500 bg-indigo-900/10' :
         slot.type === 'Lab' ? 'border-l-4 border-l-emerald-500 bg-emerald-900/10' :
