@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { generateAIResponse } from '../services/geminiService';
+import { generateExcuse, generateDraftEmail } from '../services/geminiService';
 import { Sparkles, Mail, Ghost, Copy, RefreshCw } from 'lucide-react';
 
 const AITools: React.FC = () => {
@@ -53,10 +53,10 @@ const ExcuseGenerator: React.FC = () => {
   const handleGenerate = async () => {
     if (!reason) return;
     setLoading(true);
-    const systemPrompt = "You are a creative excuse generator for engineering students. Keep it short, funny, and slightly believable but chaotic. Use Gen-Z slang.";
-    const userPrompt = `Generate an excuse for: ${reason}. Believability level: ${intensity}%.`;
     
-    const text = await generateAIResponse(userPrompt, systemPrompt);
+    // Direct Call
+    const text = await generateExcuse(reason, intensity);
+    
     setResult(text);
     setLoading(false);
   };
@@ -130,10 +130,10 @@ const EmailDrafter: React.FC = () => {
     const handleGenerate = async () => {
       if (!topic) return;
       setLoading(true);
-      const systemPrompt = "You are an expert email drafter for students emailing professors. Format properly with Subject and Body. Keep it polite but persuasive.";
-      const userPrompt = `Write an email to ${recipient || 'Professor'} about: ${topic}. Tone: ${tone}.`;
       
-      const text = await generateAIResponse(userPrompt, systemPrompt);
+      // Direct Call
+      const text = await generateDraftEmail(recipient || 'Professor', topic, tone);
+      
       setResult(text);
       setLoading(false);
     };
