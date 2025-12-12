@@ -95,7 +95,7 @@ const SeniorBot: React.FC = () => {
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-300 transform hover:scale-110 ${
+        className={`fixed bottom-6 right-6 z-[100] p-4 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-300 transform hover:scale-110 ${
           isOpen ? 'bg-red-500 rotate-90' : 'bg-cyan-600'
         }`}
       >
@@ -104,7 +104,7 @@ const SeniorBot: React.FC = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-[350px] h-[500px] glass-panel border border-cyan-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-40 animate-[slideUp_0.3s_ease-out]">
+        <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[350px] h-[60vh] sm:h-[500px] max-h-[80vh] glass-panel border border-cyan-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[100] animate-[slideUp_0.3s_ease-out]">
           {/* Header */}
           <div className="p-4 bg-cyan-950/50 border-b border-cyan-500/20 flex items-center justify-between">
             <div className="flex items-center gap-3">

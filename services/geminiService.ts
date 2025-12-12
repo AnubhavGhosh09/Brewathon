@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { COLLEGE_CONTEXT } from "../constants";
+import { COLLEGE_CONTEXT, INITIAL_CLUBS } from "../constants";
 
 // Declare process to satisfy TypeScript compiler (tsc).
 // Vite's define plugin replaces 'process.env.API_KEY' with the actual string literal at build time.
@@ -181,6 +181,50 @@ export const generateDraftEmail = async (recipient: string, topic: string, tone:
     }
 };
 
+export const matchClubs = async (userInterests: string): Promise<Array<{id: string, reason: string}>> => {
+    try {
+        checkAI();
+        
+        // Prepare context
+        const clubData = INITIAL_CLUBS.map(c => ({
+            id: c.id,
+            name: c.name,
+            category: c.category,
+            description: c.description
+        }));
+
+        const prompt = `
+        You are an AI Matchmaker for college students.
+        
+        AVAILABLE CLUBS DATABASE:
+        ${JSON.stringify(clubData)}
+
+        USER INTERESTS/PROFILE:
+        "${userInterests}"
+
+        TASK:
+        Identify the top 3 clubs that best match the user's interests.
+        
+        OUTPUT FORMAT:
+        Return a strict JSON array of objects.
+        Schema: [{ "id": "club_id", "reason": "Short, punchy reason why (max 10 words)" }]
+        `;
+
+        const response = await ai!.models.generateContent({
+           model: "gemini-2.5-flash",
+           contents: { parts: [{ text: prompt }] },
+           config: { responseMimeType: "application/json" }
+        });
+        
+        const jsonStr = response.text || "[]";
+        return JSON.parse(jsonStr);
+
+    } catch (e) {
+        console.error("Matchmaker Error:", e);
+        throw new Error("MATCHMAKING_ALGORITHM_FAILED");
+    }
+};
+
 // Legacy/Compatibility wrapper
 export const generateAIResponse = async (prompt: string, systemInstruction: string): Promise<string> => {
     try {
@@ -188,10 +232,13 @@ export const generateAIResponse = async (prompt: string, systemInstruction: stri
         const response = await ai!.models.generateContent({
             model: "gemini-2.5-flash",
             contents: { parts: [{ text: prompt }] },
-            config: { systemInstruction }
+            config: {
+                systemInstruction: systemInstruction,
+            }
         });
         return response.text || "";
     } catch (e) {
-        return "AI Offline";
+        console.error("AI Error:", e);
+        return "Error generating response.";
     }
 };

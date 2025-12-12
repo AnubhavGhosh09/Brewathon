@@ -77,19 +77,44 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-1000 ${
-        isPanicMode ? 'panic-mode-bg' : 'bg-[#050505]'
-    }`}>
-      {/* Matrix Overlay Effect */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] opacity-20"></div>
+    // REMOVED 'hue-cycle' from here to prevent breaking fixed/sticky positioning of children
+    <div className={`min-h-screen relative overflow-hidden bg-[#02040a] transition-colors duration-1000`}>
+      
+      {/* --- ANIMATED BACKGROUND SYSTEM --- */}
+      {/* ADDED 'hue-cycle' here so only the background shifts colors, not the UI layout context */}
+      <div className={`fixed inset-0 pointer-events-none z-0 ${!isPanicMode ? 'hue-cycle' : ''}`}>
+        
+        {/* 1. Deep Space Gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_#1e293b_0%,_#02040a_80%)] opacity-80"></div>
 
-      {/* Background Ambience */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
-         <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px]"></div>
-         <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[100px]"></div>
-         {isPanicMode && (
-             <div className="absolute inset-0 bg-red-900/10 animate-pulse z-0"></div>
-         )}
+        {/* 2. Horizon Glow Line */}
+        <div className="absolute top-[30%] left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent blur-sm opacity-50"></div>
+
+        {/* 3. Moving Perspective Grid */}
+        <div className={`perspective-grid ${isPanicMode ? 'opacity-20' : 'opacity-80'}`}></div>
+        
+        {/* 4. Scanning Beam */}
+        {!isPanicMode && <div className="scanline-beam"></div>}
+
+        {/* 5. Floating Neon Blobs (Enhanced) */}
+        {!isPanicMode && (
+          <>
+            <div className="neon-blob w-[500px] h-[500px] bg-purple-600/30 top-[-10%] left-[-10%] animate-[blob-float_20s_infinite_alternate] mix-blend-screen"></div>
+            <div className="neon-blob w-[400px] h-[400px] bg-cyan-600/20 bottom-[-10%] right-[-10%] animate-[blob-float_15s_infinite_alternate-reverse] mix-blend-screen"></div>
+            <div className="neon-blob w-[300px] h-[300px] bg-emerald-600/20 top-[40%] left-[40%] animate-[blob-float_25s_infinite_alternate] mix-blend-screen"></div>
+          </>
+        )}
+
+        {/* 6. Panic Mode Red Overlay (Pulsing) */}
+        {isPanicMode && (
+            <div className="absolute inset-0 bg-red-950/40 mix-blend-overlay animate-pulse"></div>
+        )}
+        
+        {/* 7. Scanlines/Noise Overlay */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-100 contrast-150 mix-blend-overlay"></div>
+        
+        {/* 8. Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000000_100%)] opacity-60"></div>
       </div>
 
       <div className="relative z-10">
